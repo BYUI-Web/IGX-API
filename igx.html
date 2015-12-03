@@ -1,0 +1,104 @@
+<html>
+	<head>
+		<script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+		<script type="text/javascript" src="igx_api.js"></script>
+	</head>
+	<script type="text/javascript">
+		function Login() {
+			var username = jQuery('#login_username').val();
+			var password = jQuery('#login_password').val();
+			if (username && password) {
+				IGX.RESTful.MembershipProviders.Login(username, password, OnLogin);
+			} else {
+				alert('You need to enter both a username and password!');
+			}
+		}
+
+		function Logout() {
+			IGX.RESTful.MembershipProviders.Logout(OnLogout);
+		}
+
+
+
+		function OnLogin(result) {
+			var treeNode = {
+				"widgetId": "x77",
+				"objectId": "x77",
+				"index": 1
+			}
+
+			var des = [];
+
+			switch (result.code) {
+				case 0:
+					retVal = IGX.Pages.getDecendants('x109223', des, 'dev-wes', show_result);
+					console.log(des);
+					jQuery('#login_panel').hide();
+					jQuery('#controls').show();
+					jQuery('#login_panel input').val('');
+					break;
+				default:
+					alert(result.error);
+					break;
+			}
+		}
+		function OnLogout(result) {
+			jQuery('#login_panel').show();
+			jQuery('#controls, #user_creation_panel').hide();
+		}
+	</script>
+
+	<body>
+		<div id="login_panel">
+			<div>
+				<label for="login_username">Username</label>
+				<input id="login_username" type="text">
+			</div>
+			<div>
+				<label for="login_password">Password</label>
+				<input id="login_password" type="password">
+			</div>
+			<div>
+				<button onclick="Login();">Login</button>
+			</div>
+		</div>
+		<div id="controls" hidden>
+
+		</div>
+		<div id="user_creation_panel" hidden>
+			<h3>User Creation</h3>
+			<div>
+				<div>
+					<label for="uc_id">ID</label>
+					<input id="uc_id">
+				</div>
+
+				<div>
+					<label for="uc_name">Display Name</label>
+					<input id="uc_name">
+				</div>
+				<div>
+					<label for="uc_password">Password</label>
+					<input id="uc_password" type="password">
+				</div>
+				<div>
+					<label for="uc_email">Email Address</label>
+					<input id="uc_email" type="email">
+				</div>
+				<div>
+					<button onclick="CreateNewUser()">Create User</button>
+				</div>
+			</div>
+		</div>
+		<span id="last_sync_time" hidden></span>
+		<div id="display_users_panel" hidden>
+			<div>
+				<button onclick="DeleteUsers()">Delete Selected Users</button>
+			</div>
+			<div class="content"></div>
+		</div>
+		<div id="display_groups_panel" hidden>
+			<div class="content"></div>
+		</div>
+	</body>
+</html>
