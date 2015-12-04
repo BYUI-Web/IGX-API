@@ -2,6 +2,7 @@
 	<head>
 		<script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 		<script type="text/javascript" src="igx_api.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 	</head>
 	<script type="text/javascript">
 		function Login() {
@@ -18,8 +19,6 @@
 			IGX.RESTful.MembershipProviders.Logout(OnLogout);
 		}
 
-
-
 		function OnLogin(result) {
 			var treeNode = {
 				"widgetId": "x77",
@@ -27,78 +26,123 @@
 				"index": 1
 			}
 
-			var des = [];
-
 			switch (result.code) {
 				case 0:
-					retVal = IGX.Pages.getDecendants('x109223', des, 'dev-wes', show_result);
-					console.log(des);
-					jQuery('#login_panel').hide();
-					jQuery('#controls').show();
-					jQuery('#login_panel input').val('');
+					//IGX.Pages.syncSite('x109223','', 'dev-wes', show_result);
+					IGX.RESTful.SchemaDesignerServices.GetSchemas(popSchemaList)
+					$('#login-panel').fadeOut(function(){
+						$('#application').fadeIn();
+					});
 					break;
 				default:
 					alert(result.error);
 					break;
 			}
 		}
+
+		function syncSite() {
+			var schema = $('#schema-select option:selected').attr('data-val');
+			var rootId = $('#root').val();
+			var pubTarget = $('#pub-target').val();
+
+			IGX.Pages.syncSite(rootId, schema, pubTarget, show_result);
+		}
+
+		function popSchemaList(response) {
+			$(document).ready(function(){
+				var schemas = response.message.pageSchemas;
+				for (var i = 0; i < schemas.length; i++) {
+					var scma = schemas[i]
+					$('#schema-list tbody').html($('#schema-list tbody').html() + "<tr><td>" + JSON.parse(scma.Name).Name + "</td><td>" + scma.ID + "</td></tr>");
+					$('#schema-select').html($('#schema-select').html() + "<option data-val=" +scma.ID+ ">" + JSON.parse(scma.Name).Name + "</option>");
+				}
+			});
+		}
+
 		function OnLogout(result) {
 			jQuery('#login_panel').show();
 			jQuery('#controls, #user_creation_panel').hide();
 		}
 	</script>
 
+	<style type="text/css">
+		.center-content {
+			text-align: center;
+		}
+
+		#login-modal button{
+			width: 100%;
+			margin-top: 15px;
+		}
+
+		#application {
+			display: none;
+		}
+
+	</style>
+
 	<body>
-		<div id="login_panel">
-			<div>
-				<label for="login_username">Username</label>
-				<input id="login_username" type="text">
+		<main class="container">
+			<div class="row" id="login-panel">
+				<div class="col-xs-5"></div>
+				<div class="col-xs-2 center-content" id="login_panel">
+					<div id="login-modal">
+						<div class="form-group">
+							<label for="login_username">Username</label>
+							<input class="form-control" id="login_username" type="text">
+						</div>
+						<div class="form-group">
+							<label for="login_password">Password</label>
+							<input class="form-control" id="login_password" type="password">
+						</div>
+						<div>
+							<button class="btn btn-default" onclick="Login();">Login</button>
+						</div>
+					</div>
+				</div>
+				<div class="col-xs-5"></div>
 			</div>
-			<div>
-				<label for="login_password">Password</label>
-				<input id="login_password" type="password">
-			</div>
-			<div>
-				<button onclick="Login();">Login</button>
-			</div>
-		</div>
-		<div id="controls" hidden>
+			<div id="application" class="row">
+				<div class="col-md-6">
+					<div id="controls">
+						<h2>Site Sync</h2>
+						<div id="site-sync">
+							<label for="schema-select">Schema to Sync in site:</label>
+					      <select class="form-control" id="schema-select">
+					      </select>
+							<br>
+							<div class="form-group">
+							  <label for="pub-target">Publishing Target (i.e. dev-wes)</label>
+							  <input type="text" class="form-control" id="pub-target">
+							</div>
+							<div class="form-group">
+							  <label for="root">Site Root xID</label>
+							  <input type="text" class="form-control" id="root">
+							</div>
+							<br>
+							<button class="btn btn-primary pull-right" onclick="syncSite()">
+								Sync Site
+							</button>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div id="schema-list">
+						<h2>Schemas</h2>
+							<table id="schema-list" class="table table-striped">
+								<thead>
+									<tr>
+										<th>Schema Name</th>
+										<th>Schema ID</th>
+									</tr>
+								</thead>
+								<tbody>
 
-		</div>
-		<div id="user_creation_panel" hidden>
-			<h3>User Creation</h3>
-			<div>
-				<div>
-					<label for="uc_id">ID</label>
-					<input id="uc_id">
-				</div>
-
-				<div>
-					<label for="uc_name">Display Name</label>
-					<input id="uc_name">
-				</div>
-				<div>
-					<label for="uc_password">Password</label>
-					<input id="uc_password" type="password">
-				</div>
-				<div>
-					<label for="uc_email">Email Address</label>
-					<input id="uc_email" type="email">
-				</div>
-				<div>
-					<button onclick="CreateNewUser()">Create User</button>
+								</tbody>
+							</table>
+					</div>
 				</div>
 			</div>
-		</div>
-		<span id="last_sync_time" hidden></span>
-		<div id="display_users_panel" hidden>
-			<div>
-				<button onclick="DeleteUsers()">Delete Selected Users</button>
-			</div>
-			<div class="content"></div>
-		</div>
-		<div id="display_groups_panel" hidden>
-			<div class="content"></div>
-		</div>
+		</main>
 	</body>
 </html>

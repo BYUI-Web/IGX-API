@@ -21,36 +21,35 @@
 		return !!igx_settings.session_id;
 	}
 
-	function getDecendants(pageId, pageIds, publishTarget, callback) {
-		//add the root id
-		pageIds.push(pageId)
-
+	function syncSite(rootPageId, schemaId, publishTarget, callback) {
 		var treeNode = {
-			"widgetId": pageId,
-			"objectId": pageId,
+			"widgetId": rootPageId,
+			"objectId": rootPageId,
 			"index": 1
 		}
 
 		//ugrade the schema
-		IGX.RESTful.SchemaDesignerServices.SyncPagesToSchema("asd","as", show_result);
+		IGX.RESTful.SchemaDesignerServices.SyncPagesToSchema(schemaId,[rootPageId], show_result);
 
 		//get children and recurse
-		IGX.RESTful.SiteTree.GetChildPages(treeNode, publishTarget, 0, decendantsReecursiveHelper);
+		IGX.RESTful.SiteTree.GetChildPages(treeNode, publishTarget, 0, schemaId, siteSyncHelper);
 	}
 
-	function decendantsReecursiveHelper(response) {
+	function siteSyncHelper(schemaId, response) {
 		var children = response.message;
 
+		//For each child page
 		for (var i = 0; i < children.length; i++) {
+			//get the current child
 			var child = children[i];
 
-			//get decendatns of children by calling the function^
-			getDecendants(child.objectId, [], 'dev-wes', show_result);
+			//get decendatns of children by calling the above function
+			syncSite(child.objectId, schemaId, 'dev-wes', show_result);
 		}
 	}
 
-	IGX.Pages.getDecendants = function(pagId, pageIds, publishTarget, callback) {
-		return getDecendants(pagId, pageIds, publishTarget, callback);
+	IGX.Pages.syncSite = function(pagId, pageIds, publishTarget, callback) {
+		return syncSite(pagId, pageIds, publishTarget, callback);
 	}
 
 	IGX.User.LoggedIn = function() {
@@ -80,7 +79,7 @@
 			{
 				var method = methods[i];
 				var method_name = /function ([^(]*)/.exec( method+"" )[1];
-					console.log(method_name);
+				console.log(method_name);
 				if (RESTful_Services[name][method_name]) {
 					console.error('RESTful Service "' + name + '" already has a method named"' + method_name + '".')
 				}
@@ -106,404 +105,451 @@
 				return
 			}
 			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/MembershipProvidersServices.svc/Login",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-			    data: JSON.stringify({
-			        "userName": username,
-			        "password": password,
-			        "membershipProviderName": igx_settings.membership_provider }),
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	igx_settings.session_id = response.message;
-			    	delete response.message;
-			    	callback(response);
+				url: igx_settings.root_url + "/REST/MembershipProvidersServices.svc/Login",
+				type: "POST",
+				crossDomain: igx_settings.cross_domain,
+				data: JSON.stringify({
+					"userName": username,
+					"password": password,
+					"membershipProviderName": igx_settings.membership_provider }),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						console.log(response.message);
+						igx_settings.session_id = response.message;
+						delete response.message;
+						callback(response);
 
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function Logout(callback) {
-			if (typeof callback != 'function') {
-				throw 'MembershipProviders.Logout takes 1 argument: [function] callback.';
-			}
-
-			if (!IsLoggedIn()) {
-				callback({
-					code: -1,
-					error: 'You are already logged out'
-				});
-			}
-			igx_settings.session_id = '';
-			callback({
-				code:0,
-				message:'Logged out successfully'
-			});
-		},
-		function ChangePassword(username, oldpassword, newpassword, callback) {
-			if (typeof username != 'string' || typeof oldpassword != 'string' || typeof newpassword != 'string' || typeof callback != 'function') {
-				throw 'MembershipProviders.ChangePassword takes 4 arguments: [string] username, [string] oldpassword, [string]newpassword [function] callback.';
-			}
-			if (!IsLoggedIn()) {
-				callback({
-					code: -1,
-					error: 'You must be logged in to change passwords'
-				});
-				return;
-			}
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-
-		},
-		function CreateUser(username, password, email, callback) {
-			if (typeof username != 'string' || typeof password != 'string' || typeof email != 'string' || typeof callback != 'function') {
-				throw 'MembershipProviders.CreateUser takes 4 arguments: [string] username, [string] password, [string] email, [function] callback.'
-			}
-			if (!IsLoggedIn()) {
-				callback({
-					code: -1,
-					error: 'You must be logged in to change passwords'
-				});
-				return;
-			}
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function DeleteUsers(users, callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function GetADQueryDefaults(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function GetIntegratedProvider(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function IsAdDefaultProvider(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function QueryAD(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function ResetPassword(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		}
-	]);
-
-
-	/***
-	* Create UserManager Service
-	*/
-
-	create_service('UserManager', [
-		function CreateNewGroup(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function CreateNewUser(id, name, email, password, callback) {
-			if (typeof settings != 'object' || typeof callback != 'function') {
-				throw 'UserManager.CreateNewUser takes 5 arguments: [string] id, [string] name, [string] email, [string] password, [function] callback.'
-			}
-
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/UserManagerServices.svc/CreateNewUser",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    data: JSON.stringify({
-			        data: {
-			        	info: {
-			        		newEntry:true,
-			        		receiveWorkFlowNotificationMail:false,
-			        		integratedMembershipProvider:'',
-			        		readLocales:[],
-			        		writeLocales:[],
-			        		id:'byui\/' + id,
-			        		name:name,
-			        		email:email,
-			        		password:password,
-			        	},
-			        	groups:[]
-			        }
-			    }),
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
-
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function DeleteGroups(group_ids, callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function DeleteUsers(user_ids, callback) {
-			if (!(user_ids instanceof Array) || typeof callback != 'function') {
-				throw 'UserManager.DeleteUsers takes two arguments: [array of strings] user_ids, [function] callback.';
-			}
-
-			var request = new XMLHttpRequest();
-
-			request.onreadystatechange = function() {
-				if (request.readyState == 4) {
-					if (request.status == 200) {
-						callback(request.response);
+					},
+					error: function (xhr, status) {
+						alert(status);
 					}
+				});
+			},
+			function Logout(callback) {
+				if (typeof callback != 'function') {
+					throw 'MembershipProviders.Logout takes 1 argument: [function] callback.';
 				}
-			};
 
-			// FIXME: This does not handle cross domain requests yet
-			request.open('POST', igx_settings.root_url + "/REST/UserManagerServices.svc/DeleteUsers", true);
-			request.setRequestHeader('Content-Type', 'application/json');
-			request.setRequestHeader('X-IGXAToken', igx_settings.session_id);
-			request.responseType = 'json';
-			request.send(JSON.stringify({
-				data: {
-					selectedIds: user_ids
+				if (!IsLoggedIn()) {
+					callback({
+						code: -1,
+						error: 'You are already logged out'
+					});
 				}
-			}));
-
-		},
-		function GetGroupRoles(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function GetSettings(callback) {
-			if (typeof callback != 'function') {
-				throw 'UserManager.GetSettings takes 1 argument: [function] callback';
-			}
-
-			if (!IsLoggedIn()) {
+				igx_settings.session_id = '';
 				callback({
-					code:-1,
-					error:'You must be logged in to use UserManager.GetSettings'
+					code:0,
+					message:'Logged out successfully'
 				});
-				return;
-			}
-
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSettings",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
-
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function GetSingleGroup(group_id, callback) {
-			if (typeof group_id != 'string' || typeof callback != 'function') {
-				throw 'UserManager.GetSingleGroup takes 2 arguments: [string] group_id, [function] callback';
-			}
-
-			if (!IsLoggedIn()) {
+			},
+			function ChangePassword(username, oldpassword, newpassword, callback) {
+				if (typeof username != 'string' || typeof oldpassword != 'string' || typeof newpassword != 'string' || typeof callback != 'function') {
+					throw 'MembershipProviders.ChangePassword takes 4 arguments: [string] username, [string] oldpassword, [string]newpassword [function] callback.';
+				}
+				if (!IsLoggedIn()) {
+					callback({
+						code: -1,
+						error: 'You must be logged in to change passwords'
+					});
+					return;
+				}
 				callback({
-					code:-1,
-					error:'You must be logged in to use UserManager.GetSingleGroup'
+					code:-2,
+					error:' Unimplemented'
 				});
-				return;
-			}
 
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSingleGroup",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    data: JSON.stringify({data:{ 'itemId': group_id}}),
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
-
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function GetSingleUser(user_id, callback) {
-			if (typeof user_id != 'string' || typeof callback != 'function') {
-				throw 'UserManager.GetSingleUser takes 2 arguments: [string] user_id, [function] callback';
-			}
-
-			if (!IsLoggedIn()) {
+			},
+			function CreateUser(username, password, email, callback) {
+				if (typeof username != 'string' || typeof password != 'string' || typeof email != 'string' || typeof callback != 'function') {
+					throw 'MembershipProviders.CreateUser takes 4 arguments: [string] username, [string] password, [string] email, [function] callback.'
+				}
+				if (!IsLoggedIn()) {
+					callback({
+						code: -1,
+						error: 'You must be logged in to change passwords'
+					});
+					return;
+				}
 				callback({
-					code:-1,
-					error:'You must be logged in to use UserManager.GetSingleUser'
+					code:-2,
+					error:' Unimplemented'
 				});
-				return;
-			}
-
-			console.log(encodeURI('byui\\' + user_id));
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSingleUser",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    data: JSON.stringify({data:{'itemId': encodeURI('byui\\' + user_id)}}),
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
-
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function GetUsersAndGroupsSimple(callback) {
-			if (typeof callback != 'function') {
-				throw 'UserManager.GetSingleGroup takes 1 argument: [function] callback';
-			}
-
-			if (!IsLoggedIn()) {
+			},
+			function DeleteUsers(users, callback) {
 				callback({
-					code:-1,
-					error:'You must be logged in to use UserManager.GetUsersAndGroupsSimple'
+					code:-2,
+					error:' Unimplemented'
 				});
-				return;
+			},
+			function GetADQueryDefaults(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function GetIntegratedProvider(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function IsAdDefaultProvider(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function QueryAD(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function ResetPassword(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
 			}
+		]);
 
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetUsersAndGroupsSimple",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
 
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		},
-		function RemoveGroupRole(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function SaveGroupRole(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function SaveSingleGroup(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function SaveSingleUser(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		},
-		function SetSettings(callback) {
-			callback({
-				code:-2,
-				error:' Unimplemented'
-			});
-		}
-	]);
+		/***
+		* Create UserManager Service
+		*/
 
-	create_service('SiteTree', [
-		function GetChildPages(treeNode, publishTarget, nextIndex, callback) {
-			jQuery.ajax({
-			    url: igx_settings.root_url + "/REST/SiteTreeServices.svc/GetChildPages",
-			    type: "POST",
-		    	crossDomain: igx_settings.cross_domain,
-	            headers: {
-	                "X-IGXAToken": igx_settings.session_id //send security token as header
-	            },
-			    data: JSON.stringify({
+		create_service('UserManager', [
+			function CreateNewGroup(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function CreateNewUser(id, name, email, password, callback) {
+				if (typeof settings != 'object' || typeof callback != 'function') {
+					throw 'UserManager.CreateNewUser takes 5 arguments: [string] id, [string] name, [string] email, [string] password, [function] callback.'
+				}
+
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/UserManagerServices.svc/CreateNewUser",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					data: JSON.stringify({
+						data: {
+							info: {
+								newEntry:true,
+								receiveWorkFlowNotificationMail:false,
+								integratedMembershipProvider:'',
+								readLocales:[],
+								writeLocales:[],
+								id:'byui\/' + id,
+								name:name,
+								email:email,
+								password:password,
+							},
+							groups:[]
+						}
+					}),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+			function DeleteGroups(group_ids, callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function DeleteUsers(user_ids, callback) {
+				if (!(user_ids instanceof Array) || typeof callback != 'function') {
+					throw 'UserManager.DeleteUsers takes two arguments: [array of strings] user_ids, [function] callback.';
+				}
+
+				var request = new XMLHttpRequest();
+
+				request.onreadystatechange = function() {
+					if (request.readyState == 4) {
+						if (request.status == 200) {
+							callback(request.response);
+						}
+					}
+				};
+
+				// FIXME: This does not handle cross domain requests yet
+				request.open('POST', igx_settings.root_url + "/REST/UserManagerServices.svc/DeleteUsers", true);
+				request.setRequestHeader('Content-Type', 'application/json');
+				request.setRequestHeader('X-IGXAToken', igx_settings.session_id);
+				request.responseType = 'json';
+				request.send(JSON.stringify({
+					data: {
+						selectedIds: user_ids
+					}
+				}));
+
+			},
+			function GetGroupRoles(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function GetSettings(callback) {
+				if (typeof callback != 'function') {
+					throw 'UserManager.GetSettings takes 1 argument: [function] callback';
+				}
+
+				if (!IsLoggedIn()) {
+					callback({
+						code:-1,
+						error:'You must be logged in to use UserManager.GetSettings'
+					});
+					return;
+				}
+
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSettings",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+			function GetSingleGroup(group_id, callback) {
+				if (typeof group_id != 'string' || typeof callback != 'function') {
+					throw 'UserManager.GetSingleGroup takes 2 arguments: [string] group_id, [function] callback';
+				}
+
+				if (!IsLoggedIn()) {
+					callback({
+						code:-1,
+						error:'You must be logged in to use UserManager.GetSingleGroup'
+					});
+					return;
+				}
+
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSingleGroup",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					data: JSON.stringify({data:{ 'itemId': group_id}}),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+			function GetSingleUser(user_id, callback) {
+				if (typeof user_id != 'string' || typeof callback != 'function') {
+					throw 'UserManager.GetSingleUser takes 2 arguments: [string] user_id, [function] callback';
+				}
+
+				if (!IsLoggedIn()) {
+					callback({
+						code:-1,
+						error:'You must be logged in to use UserManager.GetSingleUser'
+					});
+					return;
+				}
+
+				console.log(encodeURI('byui\\' + user_id));
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetSingleUser",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					data: JSON.stringify({data:{'itemId': encodeURI('byui\\' + user_id)}}),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+			function GetUsersAndGroupsSimple(callback) {
+				if (typeof callback != 'function') {
+					throw 'UserManager.GetSingleGroup takes 1 argument: [function] callback';
+				}
+
+				if (!IsLoggedIn()) {
+					callback({
+						code:-1,
+						error:'You must be logged in to use UserManager.GetUsersAndGroupsSimple'
+					});
+					return;
+				}
+
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/UserManagerServices.svc/GetUsersAndGroupsSimple",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+			function RemoveGroupRole(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function SaveGroupRole(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function SaveSingleGroup(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function SaveSingleUser(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			},
+			function SetSettings(callback) {
+				callback({
+					code:-2,
+					error:' Unimplemented'
+				});
+			}
+		]);
+
+		create_service('SiteTree', [
+			function GetChildPages(treeNode, publishTarget, nextIndex, schemaId, callback) {
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/SiteTreeServices.svc/GetChildPages",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					data: JSON.stringify({
 						node: treeNode,
 						pubTarget: publishTarget,
 						nextPageIndex: nextIndex
-			    }),
-			    dataType: "json",
-			    contentType: "application/json",
-			    success: function (response) {
-			    	callback(response);
-					return response;
-			    },
-			    error: function (xhr, status) {
-			        alert(status);
-			    }
-			});
-		}
-	]);
+					}),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(schemaId, response);
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			}
+		]);
 
-	create_service('SchemaDesignerServices', [
-		function SyncPagesToSchema(schemaId, pageIds, callback) {
-			console.log("updated schema!" + pageIds);
-		}
-	]);
-})({
-	root_url:'http://igxur/dev-wes'
-});
+		create_service('SchemaDesignerServices', [
+			function SyncPagesToSchema(schemaId, pageIds, callback) {
+				console.log(
+					JSON.stringify({
+						data: {
+							SchemaId: schemaId,
+							PageIDs: pageIds
+						}
+					}
+				));
 
-function show_result(result) {
-	switch (result.code){
-		case 0:
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/SchemaDesignerServices.svc/SyncPagesToSchema",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					data: JSON.stringify({
+							SchemaId: schemaId,
+							PageIDs: pageIds
+					}),
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			},
+
+			function GetSchemas(callback) {
+				jQuery.ajax({
+					url: igx_settings.root_url + "/REST/SchemaDesignerServices.svc/GetSchemas",
+					type: "POST",
+					crossDomain: igx_settings.cross_domain,
+					headers: {
+						"X-IGXAToken": igx_settings.session_id //send security token as header
+					},
+					dataType: "json",
+					contentType: "application/json",
+					success: function (response) {
+						callback(response);
+					},
+					error: function (xhr, status) {
+						alert(status);
+					}
+				});
+			}
+		]);
+	})({
+		root_url:'http://igxur/dev-wes'
+	});
+
+	function show_result(result) {
+		switch (result.code){
+			case 0:
 			console.log(result.message);
 			break;
-		default:
-			alert(result.error);
+			default:
+			console.log(result.error);
+		}
 	}
-}
